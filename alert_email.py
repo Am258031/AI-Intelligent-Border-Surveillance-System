@@ -1,9 +1,9 @@
 import smtplib
 from email.message import EmailMessage
 
-EMAIL_SENDER = "your_email@gmail.com"
-EMAIL_PASSWORD = "Coder@0000"   # ⚠️ normal password nahi (App Password use karo)
-EMAIL_RECEIVER = "receiver_email@gmail.com"
+EMAIL_SENDER = "aliahmed258031@gmail.com"
+EMAIL_PASSWORD = "ayfoeagvewfqsclu"   # ⚠️ normal password nahi (App Password use karo)
+EMAIL_RECEIVER = "aliahmed258031@gmail.com"
 
 def send_email(image_path):
     msg = EmailMessage()

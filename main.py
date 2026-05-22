@@ -5,11 +5,11 @@ import numpy as np
 import os
 from deepface import DeepFace
 
-# ✅ ALERT MODULES
 from alert_email import send_email
 from alert_sms import send_sms
+from tracking import Tracker
 
-# Create folder for unknown faces
+# Folder
 if not os.path.exists("unknown"):
     os.makedirs("unknown")
 
@@ -18,10 +18,12 @@ with open("encodings.pkl", "rb") as f:
     known_faces, known_names = pickle.load(f)
 
 cap = cv2.VideoCapture(0)
+tracker = Tracker()
 last_alert = 0
 
-# 🔥 MATCH FUNCTION (with confidence)
 def find_match(embedding):
+    if len(known_faces) == 0:
+        return "Unknown", 0
     distances = []
 
     for known in known_faces:
@@ -31,12 +33,9 @@ def find_match(embedding):
     min_dist = min(distances)
     index = distances.index(min_dist)
 
-    # Confidence calculation
-    confidence = max(0, 100 - min_dist * 15)
-
-    print("Distance:", min_dist)  # debug
-
-    if min_dist < 6:   # ✅ FIXED THRESHOLD
+    print("Distance:", min_dist)
+    confidence = round((1 - min_dist) * 100, 2)
+    if min_dist < 5:
         return known_names[index], confidence
     else:
         return "Unknown", confidence
@@ -47,8 +46,11 @@ while True:
     if not ret:
         break
 
+    rects = []
+    names = []
+    confidences = []
+
     try:
-        # ✅ Better detection backend
         faces = DeepFace.extract_faces(
             frame,
             detector_backend="opencv",
@@ -57,57 +59,67 @@ while True:
 
         for face in faces:
             area = face['facial_area']
+            x, y, w, h = area['x'], area['y'], area['w'], area['h']
 
-            x = area['x']
-            y = area['y']
-            w = area['w']
-            h = area['h']
+            rects.append((x, y, w, h))
 
-            # Get embedding
+            padding = 30
+
+            x1 = max(0, x - padding)
+            y1 = max(0, y - padding)
+            x2 = min(frame.shape[1], x + w + padding)
+            y2 = min(frame.shape[0], y + h + padding)
+
+            face_crop = frame[y1:y2, x1:x2]
             embedding = DeepFace.represent(
-                img_path=face["face"],
-                model_name="Facenet",
+                img_path=face_crop,
+                model_name="Facenet512",
                 enforce_detection=False
             )[0]["embedding"]
 
             name, confidence = find_match(embedding)
 
-            # Label text
-            label = f"{name} ({confidence:.1f}%)"
-
-            # Draw box + name
-            color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
-
-            cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-            cv2.putText(frame, label, (x, y-10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-
-            # 🚨 ALERT SYSTEM
-            if name == "Unknown":
-                if time.time() - last_alert > 10:
-                    print("🚨 ALERT: Unknown person detected!")
-
-                    filename = f"unknown/{int(time.time())}.jpg"
-                    cv2.imwrite(filename, frame)
-
-                    print(f"📸 Saved: {filename}")
-
-                    # 📧 Email Alert
-                    send_email(filename)
-
-                    # 📱 SMS Alert
-                    send_sms()
-
-                    last_alert = time.time()
+            names.append(name)
+            confidences.append(confidence)
 
     except Exception as e:
         print("Error:", e)
 
+    # 🔥 TRACKING
+    objects = tracker.update(rects)
+
+    for ((objectID, centroid), (x, y, w, h), name, conf) in zip(
+        objects.items(), rects, names, confidences
+    ):
+
+        color = (0,255,0) if name != "Unknown" else (0,0,255)
+
+        cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
+
+        label = f"ID {objectID} - {name} ({conf:.1f}%)"
+        cv2.putText(frame, label, (x, y-10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+
+        # 🚨 ALERT
+        if name == "Unknown":
+            if time.time() - last_alert > 10:
+                print(f"🚨 ALERT: Unknown ID {objectID}")
+
+                filename = f"unknown/{int(time.time())}.jpg"
+                cv2.imwrite(filename, frame)
+
+                send_email(filename)
+                send_sms()
+
+                # Movement log
+                with open("movement_log.txt", "a") as f:
+                    f.write(f"Unknown ID {objectID} at {time.ctime()}\n")
+
+                last_alert = time.time()
+
     cv2.imshow("AI Surveillance System", frame)
 
-    # Press 'q' or ESC to exit
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord('q') or key == 27:
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()

@@ -24,8 +24,8 @@ for person in os.listdir(DATASET_PATH):
         try:
             embedding = DeepFace.represent(
                 img_path=img_path,
-                model_name="Facenet",
-                enforce_detection=False
+                model_name="Facenet512",
+                enforce_detection=True
             )
 
             if embedding and len(embedding) > 0:

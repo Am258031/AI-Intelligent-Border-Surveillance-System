@@ -1,18 +1,24 @@
-import cv2
+# import cv2
 
-image = cv2.imread("C:/Users/admin/Desktop/CV(Project)/python_image.png")
+# image = cv2.imread("C:/Users/admin/Desktop/CV(Project)/python_image.png")
 
-if image is None:
-    print("Could Not load image")
-else:
-    (h, w) = image.shape[:2]
+# if image is None:
+#     print("Could Not load image")
+# else:
+#     (h, w) = image.shape[:2]
 
-    center = (w//2, h//2)
-    M = cv2.getRotationMatrix2D(center, 90, 1.0)
-    rotated = cv2.warpAffine(image, M, (w, h))
+#     center = (w//2, h//2)
+#     M = cv2.getRotationMatrix2D(center, 90, 1.0)
+#     rotated = cv2.warpAffine(image, M, (w, h))
 
-    cv2.imshow("Original", image)
-    cv2.imshow("Rotated 90 degre", rotated)
+#     cv2.imshow("Original", image)
+#     cv2.imshow("Rotated 90 degre", rotated)
 
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+#     cv2.waitKey(0)
+#     cv2.destroyAllWindows()
+
+from skimage import color
+from skimage.feature import hog
+from skimage import data, exposure, io 
+
+image = data.astronaut()
