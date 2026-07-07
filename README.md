@@ -327,9 +327,9 @@ This project helped in understanding
 
 B.Tech Information Technology
 
-LinkedIn: https://linkedin.com/in/yourprofile
+LinkedIn: https://www.linkedin.com/in/amjad-ali-475927284/
 
-GitHub: https://github.com/yourusername
+GitHub: https://github.com/Am258031
 
 ---
 
